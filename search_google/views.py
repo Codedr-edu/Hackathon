@@ -1,3 +1,5 @@
+# Controller (by Robo)
+# Tạo ra phần xử lý back-end cho các chức năng
 from django.shortcuts import render, redirect
 from .models import *
 from django.contrib.auth.models import User
@@ -5,6 +7,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from .google import search
 
 
 # Create your views here.
@@ -16,28 +19,31 @@ def search(request):
             return redirect("search_result", query=search,)
 
 
-def search_result(request, query, engine):
-    if query:
-        pass
-    return render(request, "search_result.html")
+def search_result(request, query, ai_check):
+    black = blacklist.objects.filter(keyword=query).first()
+    if query and (not black or black.status != "Chặn" or black.status != "Đang điều tra"):
+        if "?" not in query and ai_check == 0:
+            result = search.search_query(query)
+            context = {"results": result}
+        else:
+            return redirect("ai_result", query)
+    else:
+        return redirect("block", query)
+    return render(request, "search_result.html", context)
 
 
 def index(request):
     return render(request, "search.html")
 
 
-def create_private_link(request):
-    if request.method == "POST":
-        name = request.POST.get("name")
-        first_color = request.POST.get("first_color")
-        second_color = request.POST.get("second_color")
-
-        if name and first_color and second_color:
-            return redirect("create_link", name=name, first_color=first_color, second_color=second_color)
-        elif name:
-            return redirect("create_link", name=name, first_color="#000000", second_color="#3b71ca")
-        elif first_color and second_color:
-            return redirect("create_link", name="Search", first_color=first_color, second_color=second_color)
-        else:
-            return redirect("index")
-    return render(request, "create_private_link.html")
+"""
+Những chức năng phải làm tiếp theo (làm ngay):
+- search hình ảnh
+- search AI
+- search file
+- search nhiều ngôn ngữ
+- search nhiều vùng
+- đóng góp từ khóa bẩn
+- xóa lịch sử
+- trang trả về khi tìm kiếm từ khóa bẩn
+"""
